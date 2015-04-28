@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.22310.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "StatusBar", "StatusBar\StatusBar.fsproj", "{0976F2EB-1D20-4852-89FB-6374983D3C37}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SpamTicker", "SpamTicker\SpamTicker.fsproj", "{F47ED289-8894-4089-8CF5-EFCC37217353}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0976F2EB-1D20-4852-89FB-6374983D3C37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0976F2EB-1D20-4852-89FB-6374983D3C37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0976F2EB-1D20-4852-89FB-6374983D3C37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0976F2EB-1D20-4852-89FB-6374983D3C37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F47ED289-8894-4089-8CF5-EFCC37217353}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F47ED289-8894-4089-8CF5-EFCC37217353}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F47ED289-8894-4089-8CF5-EFCC37217353}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F47ED289-8894-4089-8CF5-EFCC37217353}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
