@@ -5,26 +5,26 @@ open System.Windows.Forms
 open View
 open Data
 open System.Timers
+open System.Threading.Tasks
 
 type Presenter = { view        : View
                    tickerQueue : Tick Queue
                    statusList  : (Status * Label) List
                    mutable hideDelay : int }
 
-let mutable updateStatus = false
-
 let fromView (view : View) =
-    WinAPI.keyDown |> Event.add( fun key ->
-        if key = Keys.Tab then 
-            view.form.Show()
-            updateStatus <- true )
-    WinAPI.keyUp   |> Event.add( fun key ->
-        if key = Keys.Tab then 
-            view.form.Hide() 
-            updateStatus <- false ) 
+    WinAPI.keyDown |> Event.add( fun key -> if key = Keys.Tab then View.show view )
+    WinAPI.keyUp   |> Event.add( fun key -> if key = Keys.Tab then View.hide view ) 
     let statusList = List() 
     view.update.Add( fun () ->
-        statusList.ForEach( fun (stat : Status, lbl : Label) -> lbl.Text <- stat.update() ) )
+        if view.shown then 
+            statusList
+            |> Seq.map( fun (stat : Status, lbl : Label) -> async { 
+                let! newS = stat.update() |> Async.AwaitTask
+                lbl.Text <- newS } )
+            |> Async.sequence
+            |> Async.Ignore
+            |> Async.StartImmediate )
     { view = view; tickerQueue = Queue(); statusList = statusList; hideDelay = 0 }
 
 let mutable delayToHide = 0
@@ -36,7 +36,6 @@ let showFor ms (pres : Presenter) =
                              , AutoReset = true )
         let handler _ =
             pres.hideDelay <- pres.hideDelay - 100
-            //printfn "%A" pres.hideDelay
             if pres.hideDelay <= 0 then
                 pres.hideDelay <- 0
                 hide pres.view
@@ -49,3 +48,5 @@ let tick tick (pres : Presenter) =
     pres.tickerQueue.Enqueue tick
     View.addTick tick pres.view
     showFor 5000 pres
+
+let addStatus stat (pres : Presenter) = pres.statusList.Add (stat, View.addStatus stat.initial pres.view)

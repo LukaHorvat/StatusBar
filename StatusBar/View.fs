@@ -22,7 +22,9 @@ type View = { form   : Form
               ticker : FlowLayoutPanel
               status : FlowLayoutPanel
               style  : Style
-              update : IEvent<unit> }              
+              update : IEvent<unit> 
+              uiCtx  : System.Threading.SynchronizationContext
+              mutable shown : bool}              
 
 let initialize (style : Style) =
     let width = Screen.PrimaryScreen.WorkingArea.Width
@@ -49,7 +51,7 @@ let initialize (style : Style) =
     let timer = new Timer( Interval = 1000.0
                          , AutoReset = true )
     timer.Elapsed.AddHandler( fun _ _ -> 
-        form.Invoke (Func<unit>(fun () -> 
+        form.Invoke (Func<unit>( fun () -> 
             updateEvent.Trigger() ) ) 
             |> ignore )
     timer.Start()
@@ -61,38 +63,52 @@ let initialize (style : Style) =
       ticker = ticker
       status = status
       style  = style
-      update = updateEvent.Publish }
+      update = updateEvent.Publish
+      shown  = true
+      uiCtx  = System.Threading.SynchronizationContext.Current }
 
 let inFormThread fn (view : View) = Action(fn) |> view.form.Invoke |> ignore
 
-let show (view : View) = view |> inFormThread( fun () -> WinAPI.showInactiveTopmost view.form )
-let hide (view : View) = view |> inFormThread view.form.Hide
+let show (view : View) = 
+    view |> inFormThread( fun () -> WinAPI.showInactiveTopmost view.form )
+    view.shown <- true
+
+let hide (view : View) = 
+    view |> inFormThread view.form.Hide
+    view.shown <- false
 
 let addTick (Tick (msg, priority)) (view : View) =
     view |> inFormThread( fun () ->
-        view.ticker.Controls.Add(new Label( Text      = msg
-                                          , ForeColor = Color.White
-                                          , Font      = if priority = Priority.High then new Font(view.style.font, FontStyle.Bold) else view.style.font
-                                          , AutoSize  = true
-                                          , Margin    = Padding.Empty
-                                          , Name      = msg ))
-        view.ticker.Controls.Add(new Label( Text      = "|"
-                                          , ForeColor = Color.White
-                                          , Font      = view.style.font
-                                          , AutoSize  = true
-                                          , Margin    = Padding.Empty )) )
+        let controls = view.ticker.Controls
+        let tick = new Label( Text      = msg
+                            , ForeColor = Color.White
+                            , Font      = if priority = Priority.High then new Font(view.style.font, FontStyle.Bold) else view.style.font
+                            , AutoSize  = true
+                            , Margin    = Padding.Empty
+                            , Name      = msg )
+        controls.Add tick 
+        controls.SetChildIndex(tick, 0)
+        let sep = new Label( Text      = "|"
+                           , ForeColor = Color.White
+                           , Font      = view.style.font
+                           , AutoSize  = true
+                           , Margin    = Padding.Empty )
+        controls.Add sep 
+        controls.SetChildIndex(sep, 0) )
 
 let addStatus str (view : View) =
+    let controls = view.status.Controls
     let label = new Label( Text      = str 
                          , ForeColor = Color.White
                          , Font      = view.style.font
                          , AutoSize  = true
                          , Margin    = Padding.Empty
                          , Name      = str )
-    view.status.Controls.Add label
-    view.status.Controls.Add(new Label( Text      = "|" 
-                                      , ForeColor = Color.White
-                                      , Font      = view.style.font
-                                      , AutoSize  = true
-                                      , Margin    = Padding.Empty ))
+    controls.Add label
+    let sep = new Label( Text      = "|" 
+                       , ForeColor = Color.White
+                       , Font      = view.style.font
+                       , AutoSize  = true
+                       , Margin    = Padding.Empty )
+    controls.Add sep
     label

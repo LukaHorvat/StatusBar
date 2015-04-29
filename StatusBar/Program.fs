@@ -12,9 +12,8 @@ let main argv =
     use hook = new WinAPI.Hook()
     let view = View.initialize Config.defaultStyle
     let presenter = Presenter.fromView view
-    Ticker.loadPlugins "plugins"
-    Ticker.onTick.Add( fun tick -> Presenter.tick tick presenter )
-    let count = ref 0
-    presenter.statusList.Add({ initial = "hey"; update = (fun () -> count := count.Value + 1; count.Value.ToString()) }, View.addStatus "hey" view)
+    Plugin.loadPlugins "plugins"
+    Plugin.onTick.Add( fun tick -> Presenter.tick tick presenter )
+    Plugin.statuses.ForEach(fun st -> Presenter.addStatus st presenter)
     Application.Run(view.form)
     0
