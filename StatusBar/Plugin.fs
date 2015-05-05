@@ -12,6 +12,8 @@ let private _onTick = Event<_>()
 let onTick = _onTick.Publish
 let statuses = List<_>()
 
+let private publicStatic = BindingFlags.Public ||| BindingFlags.Static
+
 let private methodMatchType (ret : Type) (paramTypes : Type []) (met : MethodInfo)  =
     let ps = met.GetParameters() |> Array.map (fun p -> p.ParameterType)
     met.ReturnType = ret && (paramTypes |> Array.zip ps |> Array.forall (fun (x, y) -> x = y))
@@ -45,7 +47,7 @@ let private makeValue (fld : PropertyInfo) : 'a option =
 let private loadTicker (types : Type []) =
     types 
     |> Array.choose( fun typ -> 
-        typ.GetMethod("AddTickHandler", BindingFlags.Public ||| BindingFlags.Static) 
+        typ.GetMethod("AddTickHandler", publicStatic) 
         |> asOption
         |> Option.bind makeDelegate )
     |> Array.iter( fun (addHandler : Action<Action<string, int>>) ->
@@ -55,21 +57,40 @@ let private loadTicker (types : Type []) =
 let private loadStatuses (types : Type []) =
     types 
     |> Array.choose( fun typ -> 
-        typ.GetProperty("Status", BindingFlags.Public ||| BindingFlags.Static) 
+        typ.GetProperty("Status", publicStatic) 
         |> asOption
         |> Option.bind makeValue
         |> Option.bind (fun init -> 
-            typ.GetMethod("UpdateStatus", BindingFlags.Public ||| BindingFlags.Static) 
+            typ.GetMethod("UpdateStatus", publicStatic) 
             |> asOption
             |> Option.bind makeDelegate
             |> Option.map (fun (fn : Func<Task<string>>) -> { initial = init; update = fun () -> fn.Invoke() }) ) )
     |> statuses.AddRange
+
+let private loadConfiguration (types : Type []) name =
+    types
+    |> Array.iter( fun typ ->
+        typ.GetProperty("ConfigurationSchema", publicStatic)
+        |> asOption
+        |> Option.bind makeValue
+        |> Option.iter( fun (dict : Dictionary<string, string>) -> 
+            typ.GetMethod("Configure", publicStatic)
+            |> asOption
+            |> Option.bind makeDelegate
+            |> Option.iter( fun (fn : Action<Dictionary<string, string>>) ->  
+                let cfg = match Config.loadConfig name with
+                          | None     -> Config.askCfg dict name
+                          | Some cfg -> dict.Keys |> Seq.iter (fun k -> if cfg.ContainsKey k |> not then cfg.Add(k, dict.[k]))
+                                        cfg
+                fn.Invoke cfg
+                ) ) )
 
 let private loadAssembly path =
     try let asm = Assembly.LoadFile <| Path.GetFullPath(path)
         let types = asm.GetTypes() 
         loadTicker types
         loadStatuses types
+        loadConfiguration types (Path.GetFileNameWithoutExtension path)
     with ex -> printfn "%A" ex
 
 let loadPlugins path =
@@ -78,5 +99,5 @@ let loadPlugins path =
         |> Path.GetFullPath
         |> Assembly.LoadFile ))
     if Directory.Exists path then
-        let temp = Directory.GetFiles path |> Array.filter (fun path -> Path.GetExtension(path).ToLower() = ".dll")
+        let temp = Directory.GetFiles path |> Array.filter (fun path -> List.contains (Path.GetExtension(path).ToLower()) [".dll"; ".exe"])
         temp  |> Array.iter loadAssembly

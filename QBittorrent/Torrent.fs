@@ -5,6 +5,8 @@ open System.Collections.Generic
 open FSharp.Data
 open System.Text
 open System
+open System.Timers
+open System.Threading.Tasks
 
 type Torrent = { name    : string
                  speed   : string
@@ -14,14 +16,24 @@ type Torrent = { name    : string
 let dict = Dictionary<string, Torrent>()
 let client = new HttpClient()
 
-let port = 1234
+let mutable port = 1234
+
+let ConfigurationSchema =
+    let dict = Dictionary()
+    dict.Add("port", "1234")
+    dict
+
+let Configure (dict : Dictionary<string, string>) =
+    port <- Int32.Parse(dict.["port"]) 
 
 let _evt = Event<_>()
 let evt = _evt.Publish
 
 let Status = "QBittorrent"
 
+let mutable lastCall = DateTime.Now
 let UpdateStatus () = async {
+    lastCall <- DateTime.Now
     try let! torrents = client.GetStringAsync("http://localhost:" + port.ToString() + "/json/torrents") |> Async.AwaitTask
         let values = JsonValue.Parse(torrents).AsArray()
         return values 
@@ -44,3 +56,11 @@ let UpdateStatus () = async {
     with _ -> return "" } |> Async.StartAsTask
 
 let AddTickHandler (act : Action<string, int>) = evt.Add (fun (s, n) -> act.Invoke(s, n))
+
+let timer = new Timer( Interval  = 1000.0
+                     , AutoReset = true )
+timer.Elapsed.Add( fun _ -> 
+    let diff = DateTime.Now - lastCall
+    if diff.TotalMilliseconds > 1500.0 then 
+        UpdateStatus().Wait() )
+timer.Start()

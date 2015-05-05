@@ -13,8 +13,8 @@ type Presenter = { view        : View
                    mutable hideDelay : int }
 
 let fromView (view : View) =
-    WinAPI.keyDown |> Event.add( fun key -> if key = Keys.Tab then View.show view )
-    WinAPI.keyUp   |> Event.add( fun key -> if key = Keys.Tab then View.hide view ) 
+    WinAPI.keyDown |> Event.add( fun key -> if key = WinAPI.VK.LCONTROL then View.show view )
+    WinAPI.keyUp   |> Event.add( fun key -> if key = WinAPI.VK.LCONTROL then View.hide view ) 
     let statusList = List() 
     view.update.Add( fun () ->
         if view.shown then 
