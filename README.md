@@ -4,7 +4,7 @@ A desktop status bar.
 [Here's an example video](https://dl.dropboxusercontent.com/u/35032740/ShareX/2015/04/2015-04-28_19-31-02.webm)
 
 The plugin system is very managable. You just write a .NET assembly in anything you want and compile it to a DLL. The system looks for static methods that look like `void AddTickHandler(Action<string, int>)`. The plugin should implement this method so that it calls the given action with the new message and the priority level when some event happens.
-Here's what an example plugin looks like. It just fires a "Test" notification every 7 seconds. (written in F#, but could be anything that compile to .NET assemblies)
+Here's what an example plugin looks like. It just fires a "Test" notification every 7 seconds. (written in F#, but could be anything that compiles to .NET assemblies)
 ```
 module Spammer
 
